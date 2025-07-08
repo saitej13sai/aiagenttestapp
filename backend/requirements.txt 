@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+requests
+psycopg2-binary
+sentence-transformers
+supabase
+apscheduler
+python-dotenv
