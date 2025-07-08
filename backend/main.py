@@ -5,6 +5,7 @@ from pydantic import BaseModel
 from apscheduler.schedulers.background import BackgroundScheduler
 from supabase import create_client, Client
 
+
 import psycopg2
 import requests
 import json
@@ -679,21 +680,21 @@ if __name__ == "__main__":
 
 # ✅ HubSpot OAuth Flow
 
-@app.get("/hubspot/login")
-def hubspot_login():
-    auth_url = (
-        f"https://app.hubspot.com/oauth/authorize"
+# ---------------- HubSpot OAuth ----------------
+
+@app.get("/hubspot-connect")
+def connect_hubspot():
+    url = (
+        f"https://app-na2.hubspot.com/oauth/authorize"
         f"?client_id={HUBSPOT_CLIENT_ID}"
         f"&redirect_uri={HUBSPOT_REDIRECT_URI}"
-        f"&scope=crm.objects.contacts.read"
+        f"&scope=crm.objects.contacts.read%20crm.objects.contacts.write"
     )
-    return RedirectResponse(auth_url)
-
+    return RedirectResponse(url)
 
 @app.get("/hubspot/callback")
 def hubspot_callback(code: str):
     token_url = "https://api.hubapi.com/oauth/v1/token"
-    headers = {"Content-Type": "application/x-www-form-urlencoded"}
     data = {
         "grant_type": "authorization_code",
         "client_id": HUBSPOT_CLIENT_ID,
@@ -701,23 +702,12 @@ def hubspot_callback(code: str):
         "redirect_uri": HUBSPOT_REDIRECT_URI,
         "code": code,
     }
-    response = requests.post(token_url, headers=headers, data=data)
+
+    headers = {"Content-Type": "application/x-www-form-urlencoded"}
+    response = requests.post(token_url, data=data, headers=headers)
+
     if response.status_code == 200:
-        token_data = response.json()
-        return {"access_token": token_data["access_token"]}
+        access_token = response.json().get("access_token")
+        return {"message": "✅ HubSpot connected", "access_token": access_token}
     else:
-        raise HTTPException(status_code=400, detail="HubSpot token exchange failed")
-
-
-@app.get("/hubspot/ingest")
-def hubspot_ingest():
-    access_token = "PASTE_YOUR_VALID_ACCESS_TOKEN_HERE"  # replace after callback
-    url = "https://api.hubapi.com/crm/v3/objects/contacts"
-    headers = {"Authorization": f"Bearer {access_token}"}
-    response = requests.get(url, headers=headers)
-    if response.status_code == 200:
-        contacts = response.json()
-        return {"message": "✅ HubSpot contacts ingested", "contacts": contacts}
-    else:
-        raise HTTPException(status_code=500, detail="Failed to fetch contacts from HubSpot")
-
+        return {"error": "Failed to retrieve HubSpot access token"}
