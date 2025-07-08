@@ -22,3 +22,10 @@ A full-stack AI assistant designed for financial advisors. This app integrates G
 - Instruction input, task list, and response display
 
 --
+## 🧑‍💻 Step-by-Step Guide to Clone and Run Locally
+
+### 1. Clone the Repo
+
+```bash
+git clone https://github.com/saitej13sai/aiagenttestapp.git
+cd aiagenttestapp
