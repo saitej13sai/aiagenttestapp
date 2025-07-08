@@ -6,7 +6,9 @@ import time
 import re
 
 # Configuration
-BACKEND_URL = "http://localhost:8000"
+# NEW (Railway backend)
+BACKEND_URL = "https://aiagenttestapp-production.up.railway.app"
+
 
 # Custom CSS for ChatGPT-like interface
 st.set_page_config(
