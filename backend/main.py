@@ -1,19 +1,17 @@
 from fastapi import FastAPI, HTTPException, Query, Request, Body
 from fastapi.responses import RedirectResponse
 from typing import Optional
-import requests
+from pydantic import BaseModel
+from apscheduler.schedulers.background import BackgroundScheduler
+from supabase import create_client, Client
+from dotenv import load_dotenv
 import psycopg2
-from sentence_transformers import SentenceTransformer
-import numpy as np
+import requests
 import json
 import uuid
 import os
-from apscheduler.schedulers.background import BackgroundScheduler
-from supabase import create_client, Client
-from pydantic import BaseModel
 from datetime import datetime
-import os
-from dotenv import load_dotenv
+import re
 load_dotenv()
 
 
@@ -31,13 +29,11 @@ GOOGLE_REDIRECT_URI = os.environ.get("GOOGLE_REDIRECT_URI")
 HUBSPOT_CLIENT_ID = os.environ.get("HUBSPOT_CLIENT_ID")
 HUBSPOT_CLIENT_SECRET = os.environ.get("HUBSPOT_CLIENT_SECRET")
 HUBSPOT_REDIRECT_URI = os.environ.get("HUBSPOT_REDIRECT_URI")
+# ---------- Gemini ----------
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+GEMINI_EMBED_URL = "https://generativelanguage.googleapis.com/v1beta/models/embedding-001:embedContent"
+GEMINI_CHAT_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-pro:generateContent"
 
-# Gemini
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
-GEMINI_API_URL = os.environ.get("GEMINI_API_URL")
-
-# ---------- Embedding Model ----------
-model = SentenceTransformer("all-MiniLM-L6-v2")
 
 # ---------- PostgreSQL Connection (Vector DB) ----------
 # PostgreSQL
@@ -57,11 +53,48 @@ conn = psycopg2.connect(
 cursor = conn.cursor()
 
 scheduler = BackgroundScheduler()
+# ---------- Embedding via Gemini ----------
+def generate_embedding(text):
+    payload = {
+        "model": "models/embedding-001",
+        "content": {"parts": [{"text": text}]}
+    }
+    res = requests.post(
+        f"{GEMINI_EMBED_URL}?key={GEMINI_API_KEY}",
+        headers={"Content-Type": "application/json"},
+        json=payload
+    )
+    data = res.json()
+    if "embedding" in data:
+        return data["embedding"]["values"]
+    else:
+        print("❌ Embedding error:", data)
+        return None
 
-# ---------- Helper Functions ----------
-def serialize_embedding(embedding):
-    return embedding.tolist() if isinstance(embedding, np.ndarray) else embedding
+# ---------- Example Chat Endpoint ----------
+class ChatRequest(BaseModel):
+    query: str
 
+@app.post("/chat")
+def chat_endpoint(req: ChatRequest):
+    prompt = {
+        "contents": [
+            {"parts": [{"text": req.query}], "role": "user"}
+        ]
+    }
+    response = requests.post(
+        f"{GEMINI_CHAT_URL}?key={GEMINI_API_KEY}",
+        headers={"Content-Type": "application/json"},
+        json=prompt
+    )
+    reply = response.json().get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "")
+    return {"response": reply}
+
+# ---------- Startup ----------
+@app.on_event("startup")
+def start_scheduler():
+    scheduler.start()
+    print("✅ Scheduler started")
 
 # ---------- Routes ----------
 @app.get("/")
