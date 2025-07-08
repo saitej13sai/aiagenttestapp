@@ -37,11 +37,11 @@ GEMINI_CHAT_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemin
 
 # ---------- PostgreSQL Connection (Vector DB) ----------
 # PostgreSQL
-DB_HOST = os.environ.get("PG_HOST")
-DB_NAME = os.environ.get("PG_NAME")
-DB_USER = os.environ.get("PG_USER")
-DB_PASSWORD = os.environ.get("PG_PASSWORD")
-DB_PORT = os.environ.get("PG_PORT")
+PG_HOST = os.environ.get("PG_HOST")
+PG_NAME = os.environ.get("PG_NAME")
+PG_USER = os.environ.get("PG_USER")
+PG_PASSWORD = os.environ.get("PG_PASSWORD")
+PG_PORT = os.environ.get("PG_PORT")
 
 conn = psycopg2.connect(
     host=os.getenv("PG_HOST"),
