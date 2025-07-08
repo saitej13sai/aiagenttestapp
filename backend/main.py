@@ -4,7 +4,7 @@ from typing import Optional
 from pydantic import BaseModel
 from apscheduler.schedulers.background import BackgroundScheduler
 from supabase import create_client, Client
-from dotenv import load_dotenv
+
 import psycopg2
 import requests
 import json
@@ -12,8 +12,8 @@ import uuid
 import os
 from datetime import datetime
 import re
+from dotenv import load_dotenv
 load_dotenv()
-
 
 app = FastAPI()
 
