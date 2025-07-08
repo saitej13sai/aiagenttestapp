@@ -676,3 +676,48 @@ def simulate_instruction_check():
 if __name__ == "__main__":
     check_ongoing_instructions()
 
+
+# ✅ HubSpot OAuth Flow
+
+@app.get("/hubspot/login")
+def hubspot_login():
+    auth_url = (
+        f"https://app.hubspot.com/oauth/authorize"
+        f"?client_id={HUBSPOT_CLIENT_ID}"
+        f"&redirect_uri={HUBSPOT_REDIRECT_URI}"
+        f"&scope=crm.objects.contacts.read"
+    )
+    return RedirectResponse(auth_url)
+
+
+@app.get("/hubspot/callback")
+def hubspot_callback(code: str):
+    token_url = "https://api.hubapi.com/oauth/v1/token"
+    headers = {"Content-Type": "application/x-www-form-urlencoded"}
+    data = {
+        "grant_type": "authorization_code",
+        "client_id": HUBSPOT_CLIENT_ID,
+        "client_secret": HUBSPOT_CLIENT_SECRET,
+        "redirect_uri": HUBSPOT_REDIRECT_URI,
+        "code": code,
+    }
+    response = requests.post(token_url, headers=headers, data=data)
+    if response.status_code == 200:
+        token_data = response.json()
+        return {"access_token": token_data["access_token"]}
+    else:
+        raise HTTPException(status_code=400, detail="HubSpot token exchange failed")
+
+
+@app.get("/hubspot/ingest")
+def hubspot_ingest():
+    access_token = "PASTE_YOUR_VALID_ACCESS_TOKEN_HERE"  # replace after callback
+    url = "https://api.hubapi.com/crm/v3/objects/contacts"
+    headers = {"Authorization": f"Bearer {access_token}"}
+    response = requests.get(url, headers=headers)
+    if response.status_code == 200:
+        contacts = response.json()
+        return {"message": "✅ HubSpot contacts ingested", "contacts": contacts}
+    else:
+        raise HTTPException(status_code=500, detail="Failed to fetch contacts from HubSpot")
+
