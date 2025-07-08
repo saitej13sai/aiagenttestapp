@@ -12,38 +12,47 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from supabase import create_client, Client
 from pydantic import BaseModel
 from datetime import datetime
+import os
+from dotenv import load_dotenv
+load_dotenv()
 
 
 app = FastAPI()
 
-# ---------- Supabase Hardcoded Credentials ----------
-SUPABASE_URL = "https://yqozjepvbdcqekacnikp.supabase.co"
-SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlxb3pqZXB2YmRjcWVrYWNuaWtwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE3MzE2NjEsImV4cCI6MjA2NzMwNzY2MX0.IuFpmvL7oePoBOk2snOx_XwGT3aADHlW23oUJlSM8u0"
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+# Supabase
+SUPABASE_URL = os.environ.get("SUPABASE_URL")
+SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
 
-# ---------- Google & HubSpot OAuth Settings ----------
-GOOGLE_CLIENT_ID = "1080985767425-6bgtko1bs3oinc1adckuo6hrqraahfdu.apps.googleusercontent.com"
-GOOGLE_CLIENT_SECRET = "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"
-GOOGLE_REDIRECT_URI = "http://localhost:8000/auth/callback"
+# OAuth
+GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID")
+GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET")
+GOOGLE_REDIRECT_URI = os.environ.get("GOOGLE_REDIRECT_URI")
 
-HUBSPOT_CLIENT_ID = "39c58647-a2b8-4a0f-9e03-3f71473d667e"
-HUBSPOT_CLIENT_SECRET = "a6cc7bbd-4211-4b5b-b8c6-75e9dadf344a"
-HUBSPOT_REDIRECT_URI = "http://localhost:8000/hubspot/callback"
+HUBSPOT_CLIENT_ID = os.environ.get("HUBSPOT_CLIENT_ID")
+HUBSPOT_CLIENT_SECRET = os.environ.get("HUBSPOT_CLIENT_SECRET")
+HUBSPOT_REDIRECT_URI = os.environ.get("HUBSPOT_REDIRECT_URI")
 
-# ---------- Gemini ----------
-GEMINI_API_KEY = "AIzaSyD2wwJeg6vIQUTH1TTqUrtQj9DlQaZrrFk"
-GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
+# Gemini
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+GEMINI_API_URL = os.environ.get("GEMINI_API_URL")
 
 # ---------- Embedding Model ----------
 model = SentenceTransformer("all-MiniLM-L6-v2")
 
 # ---------- PostgreSQL Connection (Vector DB) ----------
+# PostgreSQL
+DB_HOST = os.environ.get("DB_HOST")
+DB_NAME = os.environ.get("DB_NAME")
+DB_USER = os.environ.get("DB_USER")
+DB_PASSWORD = os.environ.get("DB_PASSWORD")
+DB_PORT = os.environ.get("DB_PORT")
+
 conn = psycopg2.connect(
-    host="aws-0-ap-south-1.pooler.supabase.com",
-    database="postgres",
-    user="postgres.yqozjepvbdcqekacnikp",
-    password="SaiTej13@#",
-    port="5432"
+    host=DB_HOST,
+    database=DB_NAME,
+    user=DB_USER,
+    password=DB_PASSWORD,
+    port=DB_PORT
 )
 cursor = conn.cursor()
 
