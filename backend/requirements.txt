@@ -1,8 +1,14 @@
 fastapi
 uvicorn
-requests
 psycopg2-binary
+requests
+python-dotenv
 sentence-transformers
+numpy
+uuid
+python-multipart
 supabase
 apscheduler
-python-dotenv
+streamlit
+requests
+
