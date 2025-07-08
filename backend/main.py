@@ -91,11 +91,7 @@ def chat_endpoint(req: ChatRequest):
     reply = response.json().get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "")
     return {"response": reply}
 
-# ---------- Startup ----------
-@app.on_event("startup")
-def start_scheduler():
-    scheduler.start()
-    print("✅ Scheduler started")
+
 
 # ---------- Routes ----------
 @app.get("/")
@@ -660,10 +656,16 @@ def check_ongoing_instructions():
 
 
 
-# ✅ SCHEDULER SETUP — 
+# ✅ SCHEDULER SETUP —
 scheduler = BackgroundScheduler()
 scheduler.add_job(check_ongoing_instructions, "interval", minutes=2)
-scheduler.start()
+
+@app.on_event("startup")
+def start_scheduler():
+    if not scheduler.running:
+        scheduler.start()
+        print("✅ Scheduler started")
+
 
 @app.get("/simulate/instruction-check")
 def simulate_instruction_check():
