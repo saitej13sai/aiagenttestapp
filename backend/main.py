@@ -1,18 +1,18 @@
 from fastapi import FastAPI, HTTPException, Query, Request, Body
 from fastapi.responses import RedirectResponse
 from typing import Optional
-from pydantic import BaseModel
-from apscheduler.schedulers.background import BackgroundScheduler
-from supabase import create_client, Client
-
-
-import psycopg2
 import requests
+import psycopg2
+from sentence_transformers import SentenceTransformer
+import numpy as np
 import json
 import uuid
 import os
+from apscheduler.schedulers.background import BackgroundScheduler
+from supabase import create_client, Client
+from pydantic import BaseModel
 from datetime import datetime
-import re
+
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -37,61 +37,27 @@ GEMINI_CHAT_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemin
 
 
 # ---------- PostgreSQL Connection (Vector DB) ----------
-# PostgreSQL
-PG_HOST = os.environ.get("PG_HOST")
-PG_NAME = os.environ.get("PG_NAME")
-PG_USER = os.environ.get("PG_USER")
-PG_PASSWORD = os.environ.get("PG_PASSWORD")
-PG_PORT = os.environ.get("PG_PORT")
+
 
 conn = psycopg2.connect(
     host=os.getenv("PG_HOST"),
     database=os.getenv("PG_NAME"),
     user=os.getenv("PG_USER"),
     password=os.getenv("PG_PASSWORD"),
-    port="5432"
+    port=os.getenv("PG_PORT", "5432")
 )
-
 cursor = conn.cursor()
 
+
+# ---------- Embedding Model ----------
+model = SentenceTransformer("all-MiniLM-L6-v2")
+
+
 scheduler = BackgroundScheduler()
-# ---------- Embedding via Gemini ----------
-def generate_embedding(text):
-    payload = {
-        "model": "models/embedding-001",
-        "content": {"parts": [{"text": text}]}
-    }
-    res = requests.post(
-        f"{GEMINI_EMBED_URL}?key={GEMINI_API_KEY}",
-        headers={"Content-Type": "application/json"},
-        json=payload
-    )
-    data = res.json()
-    if "embedding" in data:
-        return data["embedding"]["values"]
-    else:
-        print("❌ Embedding error:", data)
-        return None
 
-# ---------- Example Chat Endpoint ----------
-class ChatRequest(BaseModel):
-    query: str
-
-@app.post("/chat")
-def chat_endpoint(req: ChatRequest):
-    prompt = {
-        "contents": [
-            {"parts": [{"text": req.query}], "role": "user"}
-        ]
-    }
-    response = requests.post(
-        f"{GEMINI_CHAT_URL}?key={GEMINI_API_KEY}",
-        headers={"Content-Type": "application/json"},
-        json=prompt
-    )
-    reply = response.json().get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "")
-    return {"response": reply}
-
+# ---------- Helper Functions ----------
+def serialize_embedding(embedding):
+    return embedding.tolist() if isinstance(embedding, np.ndarray) else embedding
 
 
 # ---------- Routes ----------
@@ -657,16 +623,10 @@ def check_ongoing_instructions():
 
 
 
-# ✅ SCHEDULER SETUP —
+# ✅ SCHEDULER SETUP — 
 scheduler = BackgroundScheduler()
 scheduler.add_job(check_ongoing_instructions, "interval", minutes=2)
-
-@app.on_event("startup")
-def start_scheduler():
-    if not scheduler.running:
-        scheduler.start()
-        print("✅ Scheduler started")
-
+scheduler.start()
 
 @app.get("/simulate/instruction-check")
 def simulate_instruction_check():
@@ -676,6 +636,7 @@ def simulate_instruction_check():
 
 if __name__ == "__main__":
     check_ongoing_instructions()
+
 
 
 # ✅ HubSpot OAuth Flow
